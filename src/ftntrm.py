@@ -28,10 +28,9 @@ def setup_argparse() -> argparse.Namespace:
             'command line arguments or via a config.py file. If provided, command line arguments '
             'will override the settings in config.py.\n\n'
             'Usage Examples:\n'
-            '1. Specify resources: main.py -r cpu mem disk\n'
-            '2. Use default resources (all non-gtp): main.py\n'
-            '3. Specify BASE_URL and ACCESS_TOKEN: main.py --base_url https://api.example.com:<port> --access_token YOUR_TOKEN\n'
-            '4. Disable SSL certificate verification: main.py --no_ssl_verify\n\n'
+            '1. Run with Default Settings (using config.py):\n   ftntrm.py\n'
+            '2. Specify Resources and Disable SSL Verification:\n   ftntrm.py -r cpu mem disk --no_ssl_verify\n'
+            '3. Specify API Details and Use a Certificate:\n   ftntrm.py --base_url https://api.example.com:<port> --access_token YOUR_TOKEN --cert_file path/to/certfile.pem\n\n'
         ),
         formatter_class=argparse.RawTextHelpFormatter
     )
@@ -54,9 +53,9 @@ def setup_argparse() -> argparse.Namespace:
         '-r',
         choices=resources_choices,
         nargs='*',
-        default=default_resources,  # Set the default to all resources
-        help=('\nYou can specify one or more resources separated by spaces.\n'
-              'Example: main.py -r cpu mem disk\n'
+        default=default_resources, 
+        metavar='RESOURCE',
+        help=('You can specify one or more resources separated by spaces.\n'
               f'Available choices: {", ".join(resources_choices)}')
     )
     
@@ -64,14 +63,14 @@ def setup_argparse() -> argparse.Namespace:
     parser.add_argument(
         '--base_url',
         type=str,
-        help='Base URL for the API. Example: main.py --base_url https://api.example.com:4443'
+        help='Base URL for the API.'
     )
 
     # Optional ACCESS_TOKEN argument
     parser.add_argument(
         '--access_token',
         type=str,
-        help='Access token for API authentication. Example: main.py --access_token YOUR_TOKEN'
+        help='Access token for API authentication.'
     )
 
     # Optional argument to disable SSL certificate verification
@@ -81,11 +80,18 @@ def setup_argparse() -> argparse.Namespace:
         help='Disable SSL certificate verification and suppress SSL warnings.'
     )
 
+    # Optional argument for SSL certificate file
+    parser.add_argument(
+    '--cert_file',
+    type=str,
+    help='Path to the SSL certificate file (.crt, .cer, or .pem format).'
+    )  
+
     # Parse and return the arguments
     return parser.parse_args()
 
 # API request function
-def get_resource_data(resource: str, base_url: str, access_token: str, ssl_verify: bool = True) -> dict:
+def get_resource_data(resource: str, base_url: str, access_token: str, ssl_verify: bool = True, cert_file: str = None) -> dict:
     """
     Retrieve data for a specified resource from the API.
 
@@ -94,6 +100,7 @@ def get_resource_data(resource: str, base_url: str, access_token: str, ssl_verif
         base_url (str): The base URL of the API.
         access_token (str): Access token for API authentication.
         ssl_verify (bool): Flag to determine SSL certificate verification.
+        cert_file (str, optional): Path to an SSL certificate file for verification.
 
     Returns:
         dict: The data retrieved from the API for the specified resource, or None if an error occurs.
@@ -106,8 +113,8 @@ def get_resource_data(resource: str, base_url: str, access_token: str, ssl_verif
     url = f"{base_url}/api/v2/monitor/system/resource/usage?access_token={access_token}&resource={resource}"
     
     try:
-        # Use certifi's certificate bundle for SSL verification if enabled
-        ssl_cert_path = certifi.where() if ssl_verify else False
+        # Use certifi's certificate bundle for SSL verification
+        ssl_cert_path = cert_file if cert_file else (certifi.where() if ssl_verify else False)
         response = requests.get(url, verify=ssl_cert_path)
         response.raise_for_status()
         return response.json()
@@ -244,14 +251,14 @@ if __name__ == "__main__":
         # Configuration setup for API interaction
         BASE_URL = args.base_url if args.base_url else CONFIG_BASE_URL
         ACCESS_TOKEN = args.access_token if args.access_token else CONFIG_ACCESS_TOKEN
-        ssl_verify = not args.no_ssl_verify  # True by default, False if --no_ssl_verify is set
+        ssl_verify = not args.no_ssl_verify  
 
         # Data fetching and report generation logic
         resources_to_report = args.r
         resources = {}
 
         for resource in resources_to_report:
-            response_data = get_resource_data(resource, BASE_URL, ACCESS_TOKEN, ssl_verify=ssl_verify)
+            response_data = get_resource_data(resource, BASE_URL, ACCESS_TOKEN, ssl_verify=ssl_verify, cert_file=args.cert_file)
             if response_data and 'results' in response_data and resource in response_data['results']:
                 resources[resource.upper()] = response_data['results'][resource][0]['historical']
 

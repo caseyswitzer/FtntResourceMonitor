@@ -38,23 +38,36 @@ ACCESS_TOKEN = "Your_Access_Token"
 - Navigate to `src`, create `config.py`, and replace the placeholders with your actual information.
 
 ### Usage
-Navigate to the script's directory, then:
-- **Specify resources**:
+Navigate to the script's directory to run the script. Here are some usage examples:
+
+- **Run with Default Settings**:
+  If a `config.py` file exists with correct entries, simply run the following.  This will use the default resource selection and API details from `config.py`.
   ```bash
-  python main.py -r cpu mem disk
+  python ftntrm.py
   ```
-- **Use default resources**:
+
+- **Specify Resources and Disable SSL Verification**:
   ```bash
-  python main.py
+  python ftntrm.py -r cpu mem disk --no_ssl_verify
   ```
-- **Specify API details**:
+
+- **Specify API Details and Use a Certificate**:
   ```bash
-  python main.py --base_url https://api.example.com:<port> --access_token YOUR_TOKEN
+  python ftntrm.py --base_url https://api.example.com:<port> --access_token YOUR_TOKEN --cert_file path/to/certfile.pem
   ```
-- **Disable SSL certificate verification** (caution advised):
-  ```bash
-  python main.py --no_ssl_verify
-  ```
+
+## Using Certificates
+The script supports the use of SSL/TLS certificates for secure communication with the API. Here's how it works:
+
+### Types of Certificates Supported
+- **PEM (.pem)**: Commonly used on Unix, Linux, and macOS systems.
+- **DER (.cer/.crt)**: Typically used on Windows systems.
+
+### Behavior with `--cert_file`
+- **Specifying `--cert_file`**: When you use the `--cert_file` option with the path to a certificate file, the script will use this certificate for SSL/TLS verification.
+- **Not Specifying `--cert_file`**:
+  - **On Windows**: The script will default to using the Windows certificate store.
+  - **On Unix/Linux/macOS**: The script will use the default set of CA certificates provided by the `certifi` package.
 
 ## Report Generation
 Reports are saved in the `reports` directory:
