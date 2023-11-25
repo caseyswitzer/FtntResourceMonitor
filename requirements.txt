@@ -1,0 +1,5 @@
+requests
+matplotlib
+Jinja2
+certifi
+python-certifi-win32; platform_system == "Windows"
