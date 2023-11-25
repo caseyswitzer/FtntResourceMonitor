@@ -177,7 +177,7 @@ def plot_resource_data(resource_name: str, timeframe: str, timeframe_data: dict)
 
 # Function to save plots as images
 def save_plot_image(resource_name: str, timeframe: str, timeframe_data: dict) -> str:
-        """
+    """
     Plot the resource data and save it as a base64 encoded image.
 
     This function first calls plot_resource_data to create a plot, then saves the plot
