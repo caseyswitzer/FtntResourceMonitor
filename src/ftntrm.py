@@ -6,12 +6,17 @@ from datetime import datetime
 from pathlib import Path
 import base64
 import certifi
+import sys
 import urllib3
 from urllib3.exceptions import InsecureRequestWarning
 from requests.exceptions import HTTPError, ConnectionError, Timeout, RequestException, SSLError
 from io import BytesIO
 from jinja2 import Environment, FileSystemLoader
-from config import BASE_URL as CONFIG_BASE_URL, ACCESS_TOKEN as CONFIG_ACCESS_TOKEN
+try:
+    from config import BASE_URL as CONFIG_BASE_URL, ACCESS_TOKEN as CONFIG_ACCESS_TOKEN
+except ModuleNotFoundError:
+    CONFIG_BASE_URL = None
+    CONFIG_ACCESS_TOKEN = None
 
 # Command line arguments setup
 def setup_argparse() -> argparse.Namespace:
@@ -110,12 +115,14 @@ def get_resource_data(resource: str, base_url: str, access_token: str, ssl_verif
         urllib3.disable_warnings(InsecureRequestWarning)
 
     # Constructing the API request URL
+    base_url = base_url.rstrip('/')
     url = f"{base_url}/api/v2/monitor/system/resource/usage?access_token={access_token}&resource={resource}"
     
     try:
         # Use certifi's certificate bundle for SSL verification
         ssl_cert_path = cert_file if cert_file else (certifi.where() if ssl_verify else False)
         response = requests.get(url, verify=ssl_cert_path)
+        print("API Response:", response.text) #Debug
         response.raise_for_status()
         return response.json()
     except (SSLError, HTTPError, ConnectionError, Timeout, RequestException) as err:
@@ -249,10 +256,15 @@ if __name__ == "__main__":
         args = setup_argparse()
 
         # Configuration setup for API interaction
+        ssl_verify = not args.no_ssl_verify 
         BASE_URL = args.base_url if args.base_url else CONFIG_BASE_URL
         ACCESS_TOKEN = args.access_token if args.access_token else CONFIG_ACCESS_TOKEN
-        ssl_verify = not args.no_ssl_verify  
 
+        # Check if BASE_URL and ACCESS_TOKEN have been set either via CLI or config.py
+        if not BASE_URL or not ACCESS_TOKEN:
+            print("Error: BASE_URL and ACCESS_TOKEN must be set either via the CLI or in a config.py file.")
+            sys.exit(1)
+     
         # Data fetching and report generation logic
         resources_to_report = args.r
         resources = {}
