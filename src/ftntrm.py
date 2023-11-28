@@ -87,16 +87,25 @@ def setup_argparse() -> argparse.Namespace:
 
     # Optional argument for SSL certificate file
     parser.add_argument(
-    '--cert_file',
-    type=str,
-    help='Path to the SSL certificate file (.crt, .cer, or .pem format).'
+        '--cert_file',
+        type=str,
+        help='Path to the SSL certificate file (.crt, .cer, or .pem format).'
     )  
+
+    # Optional argument for VDOM scope
+    parser.add_argument(
+        '--scope',
+        type=str,
+        default='global',  
+        choices=['vdom', 'global'],
+        help='Scope of resource [vdom|global]. Applicable if the FortiGate is in VDOM mode.'
+    )
 
     # Parse and return the arguments
     return parser.parse_args()
 
 # API request function
-def get_resource_data(resource: str, base_url: str, access_token: str, ssl_verify: bool = True, cert_file: str = None) -> dict:
+def get_resource_data(resource: str, base_url: str, access_token: str, ssl_verify: bool = True, cert_file: str = None, scope: str = 'global') -> dict:
     """
     Retrieve data for a specified resource from the API.
 
@@ -106,6 +115,7 @@ def get_resource_data(resource: str, base_url: str, access_token: str, ssl_verif
         access_token (str): Access token for API authentication.
         ssl_verify (bool): Flag to determine SSL certificate verification.
         cert_file (str, optional): Path to an SSL certificate file for verification.
+        scope (str): Scope of the resource ('vdom' or 'global'), applicable in VDOM mode.
 
     Returns:
         dict: The data retrieved from the API for the specified resource, or None if an error occurs.
@@ -116,7 +126,7 @@ def get_resource_data(resource: str, base_url: str, access_token: str, ssl_verif
 
     # Constructing the API request URL
     base_url = base_url.rstrip('/')
-    url = f"{base_url}/api/v2/monitor/system/resource/usage?access_token={access_token}&resource={resource}"
+    url = f"{base_url}/api/v2/monitor/system/resource/usage?access_token={access_token}&resource={resource}&scope={scope}"
     
     try:
         # Making the API request and parsing the response
@@ -270,7 +280,7 @@ if __name__ == "__main__":
         resources = {}
 
         for resource in resources_to_report:
-            response_data = get_resource_data(resource, BASE_URL, ACCESS_TOKEN, ssl_verify=ssl_verify, cert_file=args.cert_file)
+            response_data = get_resource_data(resource, BASE_URL, ACCESS_TOKEN, ssl_verify=ssl_verify, cert_file=args.cert_file, scope=args.scope)
             if response_data and 'results' in response_data and resource in response_data['results']:
                 resources[resource.upper()] = response_data['results'][resource][0]['historical']
 
