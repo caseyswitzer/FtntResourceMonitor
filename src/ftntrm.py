@@ -119,10 +119,10 @@ def get_resource_data(resource: str, base_url: str, access_token: str, ssl_verif
     url = f"{base_url}/api/v2/monitor/system/resource/usage?access_token={access_token}&resource={resource}"
     
     try:
-        # Use certifi's certificate bundle for SSL verification
+        # Making the API request and parsing the response
         ssl_cert_path = cert_file if cert_file else (certifi.where() if ssl_verify else False)
         response = requests.get(url, verify=ssl_cert_path)
-        print("API Response:", response.text) #Debug
+        #print("API Response:", response.text) # Debug
         response.raise_for_status()
         return response.json()
     except (SSLError, HTTPError, ConnectionError, Timeout, RequestException) as err:
