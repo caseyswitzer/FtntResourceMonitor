@@ -128,6 +128,11 @@
         <!-- Main Report Content -->
         <div class="container">
             <h1>Resource Usage Report</h1>
+			<div class="system_info">
+				<p><strong>Serial:</strong> {{ system_info.serial }}</p>
+				<p><strong>VDOM:</strong> {{ system_info.vdom }}</p>
+				<p><strong>Version:</strong> {{ system_info.version }} (Build: {{ system_info.build }})</p>
+			</div>
             {% for resource_name, items in data.items() %}
                 <div class="section" id="{{ resource_name }}">
                     <h2>{{ resource_name }}</h2>

@@ -132,7 +132,11 @@ def get_resource_data(resource: str, base_url: str, access_token: str, ssl_verif
         # Making the API request and parsing the response
         ssl_cert_path = cert_file if cert_file else (certifi.where() if ssl_verify else False)
         response = requests.get(url, verify=ssl_cert_path)
-        #print("API Response:", response.text) # Debug
+
+        # Save response text for debugging
+        #with open('api_response_debug.txt', 'w') as debug_file:
+        #    debug_file.write(response.text)
+
         response.raise_for_status()
         return response.json()
     except (SSLError, HTTPError, ConnectionError, Timeout, RequestException) as err:
@@ -222,7 +226,7 @@ def save_plot_image(resource_name: str, timeframe: str, timeframe_data: dict) ->
     return "data:image/png;base64," + base64.b64encode(img.getvalue()).decode('utf-8')
 
 # Function to generate HTML report
-def generate_html_report(data: dict) -> None:
+def generate_html_report(data: dict, system_info: dict) -> None:
     """
     Generate an HTML report from the provided data.
 
@@ -230,8 +234,10 @@ def generate_html_report(data: dict) -> None:
     plots of resource data. The report is saved in a 'reports' directory.
 
     Args:
-        data (dict): The data to be included in the report. This should be a dictionary
-                     where keys are resource names and values are lists of data points.
+        data (dict): Data to be included in the report, structured as a dictionary
+                    with keys as resource names and values as lists of data points.
+        system_info (dict): System information including serial number, VDOM, version, 
+                            and build, extracted from the API response.
 
     Returns:
         None
@@ -254,7 +260,7 @@ def generate_html_report(data: dict) -> None:
 
     # Write the rendered HTML content to a file
     with open(report_file_path, 'w') as file:
-        html_content = template.render({'data': data})
+        html_content = template.render({'data': data, 'system_info': system_info})
         file.write(html_content)
     
     print(f"Report saved as {report_file_path}")
@@ -278,12 +284,23 @@ if __name__ == "__main__":
         # Data fetching and report generation logic
         resources_to_report = args.r
         resources = {}
+        system_info = {}
 
+        # Fetching data for each resource and timeframe
         for resource in resources_to_report:
             response_data = get_resource_data(resource, BASE_URL, ACCESS_TOKEN, ssl_verify=ssl_verify, cert_file=args.cert_file, scope=args.scope)
-            if response_data and 'results' in response_data and resource in response_data['results']:
-                resources[resource.upper()] = response_data['results'][resource][0]['historical']
+            if response_data:
+                if 'results' in response_data and resource in response_data['results']:
+                    resources[resource.upper()] = response_data['results'][resource][0]['historical']
+                if not system_info:  # Extract system info only once
+                    system_info = {
+                        'serial': response_data.get('serial', 'N/A'),
+                        'vdom': response_data.get('vdom', 'N/A'),
+                        'version': response_data.get('version', 'N/A'),
+                        'build': response_data.get('build', 'N/A')
+                    }
 
+        # Generating report data for each resource
         report_data = {}
         for resource_name, resource_data in resources.items():
             report_data[resource_name] = []
@@ -291,7 +308,7 @@ if __name__ == "__main__":
                 image_path = save_plot_image(resource_name, timeframe, data)
                 report_data[resource_name].append({'timeframe': timeframe, 'image': image_path})
 
-        generate_html_report(report_data)
+        generate_html_report(report_data, system_info)
 
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
