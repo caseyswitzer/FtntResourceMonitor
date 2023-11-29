@@ -170,8 +170,12 @@ def plot_resource_data(resource_name: str, timeframe: str, timeframe_data: dict)
         plt.xlabel("Time")
         plt.ylabel(f"{resource_name}")
 
+        # Get min, max, and avg values
+        min_value = timeframe_data.get('min', 0)
+        max_value = timeframe_data.get('max', 0)
+        avg_value = timeframe_data.get('average', 0)
+
         # Setting dynamic Y-axis range based on resource values
-        max_value = max(resource_values) if resource_values else 0
         buffer = max_value * 0.1 if max_value > 100 else 10 
         if resource_name in ['CPU', 'Memory']:
             ymax = min(max_value + buffer, 100)  
@@ -194,10 +198,15 @@ def plot_resource_data(resource_name: str, timeframe: str, timeframe_data: dict)
         current_date = timestamps[0].strftime('%Y-%m-%d') if timestamps else ''
         plt.annotate(f'Date: {current_date}', xy=(0.01, 0.95), xycoords='axes fraction', fontsize=9)
 
-        # Combine stats into a single string
-        stats = {'Min': timeframe_data.get('min', 0), 'Max': timeframe_data.get('max', 0), 'Avg': timeframe_data.get('average', 0)}
-        stats_string = ", ".join([f"{key}: {val}" for key, val in stats.items()])
-        plt.annotate(stats_string, xy=(0.95, 0.95), xycoords='axes fraction', horizontalalignment='right', fontsize=9)
+        # Add horizontal dotted lines for min, max, and avg
+        plt.axhline(y=min_value, color='r', linestyle='--', label='Min', alpha=0.3)
+        plt.axhline(y=max_value, color='g', linestyle='--', label='Max', alpha=0.3)
+        plt.axhline(y=avg_value, color='b', linestyle='--', label='Avg', alpha=0.3)
+
+        # Colored annotations for min, max, and avg
+        plt.text(1.01, 0.95, f'Max: {max_value}', transform=ax.transAxes, fontsize=9, color='green', verticalalignment='top')
+        plt.text(1.01, 0.90, f'Avg: {avg_value}', transform=ax.transAxes, fontsize=9, color='blue', verticalalignment='top')
+        plt.text(1.01, 0.85, f'Min: {min_value}', transform=ax.transAxes, fontsize=9, color='red', verticalalignment='top')
 
     except (KeyError, TypeError) as e:
         print(f"Error processing data for {resource_name}: {e}")
